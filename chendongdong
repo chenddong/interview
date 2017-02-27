@@ -1,0 +1,101 @@
+主要代码部分：
+第一、创建映射处理器：springmvc-server.xml 配置
+   <!-- 注解驱动 -->  
+    <mvc:annotation-driven/>   
+   <!-- 扫描配置 -->  
+    <context:component-scan  base-package="com.user.action"></context:component-scan>  
+   <!--  视图解析器 -->  
+    <bean id="viewResolver"  class="org.springframework.web.servlet.view.InternalResourceViewResolver">  
+    <property  name="prefix" value="/WEB-INF/info/"> </property>  
+    <property name="suffix"  value=".jsp"></property>  
+    </bean>  
+第二、web.xml配置
+  <!-- 加载spring容器配置 -->  
+    <listener>  
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>  
+    </listener>  
+    <!-- 前端控制器 -->  
+    <servlet>  
+        <servlet-name>springmvc</servlet-name>  
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>  
+        <init-param>  
+            <param-name>contextConfigLocation</param-name>  
+            <param-value>classpath:config/springmvc-servlet.xml</param-value>  
+        </init-param>  
+        <!-- 这个配置文件在容器启动的时候 就加载 -->  
+        <load-on-startup>1</load-on-startup>  
+    </servlet>  
+第三、控制层
+@Controller  
+@RequestMapping(value="/user")  
+public classUserController {   
+@Autowired  
+private UserService userService;  
+/** 
+ * 保存用户信息 
+ */  
+@RequestMapping(value="/save.do")  
+public String insert(Integer id ,String name,String sex,Integer age,String address,User user){  
+Map<String,Object>map= new HashMap<String,Object>();  
+map.put("id",user.getId());  
+map.put("name",user.getName());  
+map.put("sex",user.getSex());  
+map.put("age",user.getAge());  
+map.put("address",user.getAddress());  
+userService.saveUser(map);  
+return "success";  
+}
+第四、业务逻辑层
+@Service("userService")  
+@Transactional  
+public classUserService {  
+@Autowired  
+private UserDao userDao;  
+/**保存用户信息 
+ * @param map 
+ */  
+public void saveUser(Map<String, Object> map) {  
+userDao.saveUser(map);  
+}  
+第五、DAO层 
+@Repository("userDao")  
+public class UserDao{  
+@Autowired  
+private SqlSessionTemplate sqlSession;  
+/** 
+ * 保存用户信息 
+ * @param map 
+ */  
+public void saveUser(Map<String, Object> map) {  
+sqlSession.insert("com.insertUserMap",map);  
+}
+第六、mybatis sqlmapper 映射文件   
+<mapper namespace="com.user.userMapper">    
+<!-- 添加用户信息 -->  
+<insert id="insertUserMap"  parameterType="java.util.Map">  
+ insert into user(id,name,sex,age,address) values(#{id},#{name},#{sex},#{age},#{address})  
+</insert>   
+</mapper>  
+第七、ApplicationContext 配置文件  
+<context:component-scan base-package="com.user.service,com.user.dao"/>    
+    <bean id="sqlSessionFactory"  class="org.mybatis.spring.SqlSessionFactoryBean">  
+    <property name="dataSource" ref="dataSource"/>  
+    <!-- mybatis配置文件路径-->  
+    <property name="configLocation"  value=""/>     
+    <!-- 实体类映射文件路径-->  
+     <property name="mapperLocations" value="classpath:mybatis/UserMapper.xml"/>   
+    </bean>  
+    <!-- 配置sqlsession -->      
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">  
+    <constructor-arg index="0">  
+    <ref  bean="sqlSessionFactory"/>  
+    </constructor-arg>  
+    </bean>  
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">      
+        <property name="dataSource" ref="dataSource" />      
+    </bean>  
+   <!-- 注释事务 -->  
+    <tx:annotation-driven transaction-manager="transactionManager" />      
+ 第八、创建数据库
+ 
+ 代码结束，希望能给予意见，谢谢！
